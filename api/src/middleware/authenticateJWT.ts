@@ -1,27 +1,47 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import { logger } from "../utils/logs/logger";
 
-export const authenticateJWT = (req: Request, res: Response, next: NextFunction): void => {
-  const authHeader = req.headers.authorization;
-  const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+interface JwtPayload {
+  userId: string;
+  companyId: string;
+  role: string;
+  email: string;
+}
+
+const authenticateJWT = (req: Request, res: Response, next: NextFunction): void => {
+  let token: string | undefined;
+
+  const auth = req.headers.authorization;
+  if (auth?.startsWith("Bearer ")) {
+    token = auth.slice(7);
+  } else if (req.cookies?.app_token) {
+    token = req.cookies.app_token as string;
+  }
 
   if (!token) {
-    res.status(401).json({ message: "Token no proporcionado" });
+    res.status(401).json({ message: "No token provided" });
+    return;
+  }
+
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    res.status(500).json({ message: "JWT_SECRET not configured" });
     return;
   }
 
   try {
-    const secret = process.env.JWT_SECRET || "default-secret";
-    const decoded = jwt.verify(token, secret) as { id: string; email: string; role: string };
+    const decoded = jwt.verify(token, secret) as JwtPayload;
     req.user = {
-      id: decoded.id,
+      userId: decoded.userId,
+      companyId: decoded.companyId,
+      role: decoded.role,
       email: decoded.email,
-      role: decoded.role as any,
     };
     next();
-  } catch (err) {
-    logger.warn("JWT inválido o expirado");
-    res.status(403).json({ message: "Token inválido o expirado" });
+  } catch {
+    res.status(401).json({ message: "Invalid or expired token" });
   }
 };
+
+export { authenticateJWT };
+export default authenticateJWT;

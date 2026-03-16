@@ -1,25 +1,41 @@
-import express from "express";
+import express, { Application, Request, Response, NextFunction } from "express";
 import cors from "cors";
-import router from "./routes";
-import { logger } from "./utils/logs/logger";
+import dotenv from "dotenv";
+import logger from "./utils/logger";
+import unitRouter from "./routes/unitRouter";
+import categoryRouter from "./routes/categoryRouter";
 
-const app = express();
+dotenv.config();
+
+const app: Application = express();
 
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use("/", router);
-
-// 404
-app.use((_req, res) => {
-  res.status(404).json({ message: "Ruta no encontrada" });
+app.use((req: Request, res: Response, next: NextFunction) => {
+  const start = Date.now();
+  res.on("finish", () => {
+    logger.info(`${req.method} ${req.originalUrl} ${res.statusCode} ${Date.now() - start}ms`);
+  });
+  next();
 });
 
-// Error handler
-app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  logger.error(err.stack || err.message);
-  res.status(500).json({ message: err.message || "Error interno del servidor" });
+app.use("/api/v1/properties", categoryRouter);
+app.use("/api/v1/properties", unitRouter);
+
+app.get("/health", (_req: Request, res: Response) => {
+  res.status(200).json({ status: "ok" });
+});
+
+app.use((_req: Request, res: Response) => {
+  logger.warn(`404 — ${_req.method} ${_req.originalUrl}`);
+  res.status(404).json({ message: "Route not found" });
+});
+
+app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
+  logger.error(err.message, { stack: err.stack });
+  res.status(500).json({ message: err.message || "Internal server error" });
 });
 
 export default app;

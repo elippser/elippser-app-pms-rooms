@@ -1,12 +1,13 @@
-import { Role } from "../constants/appCatalog";
+import "express";
 
 declare global {
   namespace Express {
     interface Request {
       user?: {
-        id: string;
+        userId: string;
+        companyId: string;
+        role: string;
         email: string;
-        role: Role;
       };
     }
   }

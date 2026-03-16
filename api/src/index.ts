@@ -1,24 +1,20 @@
 import dotenv from "dotenv";
-import http from "http";
-import app from "./server";
-import { connectDB } from "./config/dbCon";
-import { logger } from "./utils/logs/logger";
-
 dotenv.config();
+
+import app from "./server";
+import connectDB from "./config/dbCon";
+import logger from "./utils/logger";
 
 const PORT = process.env.PORT || 4000;
 
-const startServer = async (): Promise<void> => {
+const start = async (): Promise<void> => {
   await connectDB();
-
-  const server = http.createServer(app);
-
-  server.listen(PORT, () => {
-    logger.info(`Servidor escuchando en puerto ${PORT}`);
+  app.listen(PORT, () => {
+    logger.info(`pms-rooms API running on port ${PORT}`);
   });
 };
 
-startServer().catch((err) => {
-  logger.error("Error al iniciar el servidor:", err);
+start().catch((err) => {
+  logger.error("Failed to start server", { error: err });
   process.exit(1);
 });

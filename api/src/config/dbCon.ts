@@ -1,15 +1,19 @@
 import mongoose from "mongoose";
-import { logger } from "../utils/logs/logger";
+import logger from "../utils/logger";
 
 const connectDB = async (): Promise<void> => {
+  const uri = process.env.DATABASE_MDB;
+  if (!uri) {
+    throw new Error("DATABASE_MDB is not defined in environment variables");
+  }
+
   try {
-    const uri = process.env.DATABASE_MDB || "mongodb://localhost:27017/elippser-pms-rooms";
     await mongoose.connect(uri);
-    logger.info("MongoDB conectado correctamente");
+    logger.info("MongoDB connected");
   } catch (error) {
-    logger.error("Error al conectar MongoDB:", error);
-    process.exit(1);
+    logger.error("MongoDB connection error", { error });
+    throw error;
   }
 };
 
-export { connectDB };
+export default connectDB;
